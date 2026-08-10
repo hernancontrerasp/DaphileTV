@@ -11,38 +11,41 @@ struct ContentView: View {
 
     var body: some View {
 
-        VStack(
-            alignment: .center,
-            spacing: 0
-        ) {
+        NavigationStack {
 
-            // MARK: - Barra superior
+            VStack(
+                alignment: .center,
+                spacing: 0
+            ) {
 
-            HStack {
+                // MARK: - Barra superior
 
-                Spacer()
+                HStack {
 
-                MainNavigationBar(
-                    selection: $navigationSelection,
-                    focusHomeRequest: $focusHomeRequest,
-                    onDestinationFocused: {
-                        destination in
+                    Spacer()
 
-                        navigationSelection = destination
-                    }
-                )
+                    MainNavigationBar(
+                        selection: $navigationSelection,
+                        focusHomeRequest: $focusHomeRequest,
+                        onDestinationFocused: {
+                            destination in
 
-                Spacer()
+                            navigationSelection = destination
+                        }
+                    )
+
+                    Spacer()
+                }
+                .focusSection()
+
+                // MARK: - Contenido principal
+
+                contentView
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity
+                    )
             }
-            .focusSection()
-
-            // MARK: - Contenido principal
-
-            contentView
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity
-                )
         }
         .environmentObject(appState)
         .onAppear {
