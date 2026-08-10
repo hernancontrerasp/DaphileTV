@@ -2,63 +2,23 @@ import SwiftUI
 
 struct HomeView: View {
 
-@EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var appState: AppState
 
-@FocusState private var focusedItem: FocusArea?
+    @FocusState private var focusedItem: FocusArea?
 
-@State private var focusedExploreItem: String?
+    @State private var focusedExploreItem: String?
 
-@State private var focusHomeRequest = false
+    enum FocusArea: Hashable {
+        case album(Int)
+        case explore(String)
+    }
 
-@State private var navigationSelection:
-    MainNavigationBar.Destination = .home
+    var body: some View {
 
-let onPlayerRequested: () -> Void
-
-enum FocusArea: Hashable {
-
-    case album(Int)
-    case explore(String)
-}
-
-var body: some View {
-
-    ScrollView(
-        .vertical,
-        showsIndicators: false
-    ) {
-
-        VStack(
-            alignment: .leading,
-            spacing: 32
+        ScrollView(
+            .vertical,
+            showsIndicators: false
         ) {
-
-            // MARK: - Barra superior
-
-            HStack {
-
-                Spacer()
-
-                MainNavigationBar(
-                    selection:
-                        $navigationSelection,
-                    focusHomeRequest:
-                        $focusHomeRequest,
-                    onDestinationFocused: {
-                        destination in
-
-                        if destination == .player {
-
-                            onPlayerRequested()
-                        }
-                    }
-                )
-
-                Spacer()
-            }
-            .focusSection()
-
-            // MARK: - Contenido
 
             VStack(
                 alignment: .leading,
@@ -68,259 +28,227 @@ var body: some View {
                 // MARK: - Música Nueva
 
                 musicNewSection
-                    .padding(.top, 20)
 
                 // MARK: - Explorar
 
                 exploreSection
             }
-            .onExitCommand {
-
-                focusHomeRequest = true
-            }
+            .padding(.horizontal, 35)
+            .padding(.top, 0)
+            .padding(.bottom, 30)
         }
-        .padding(.horizontal, 35)
-        .padding(.top, 0)
-        .padding(.bottom, 30)
+        .focusSection()
+        .task {
+            await loadAlbumsIfNeeded()
+        }
     }
-    .focusSection()
-    .task {
 
-        await loadAlbumsIfNeeded()
+    // MARK: - Cargar álbumes
+
+    private func loadAlbumsIfNeeded() async {
+
+        if appState.daphileClient.albums.isEmpty {
+
+            await appState.daphileClient.fetchAlbums()
+        }
     }
-}
 
-// MARK: - Cargar álbumes
+    // MARK: - Música Nueva
 
-private func loadAlbumsIfNeeded() async {
+    private var musicNewSection: some View {
 
-    if appState.daphileClient.albums.isEmpty {
+        VStack(
+            alignment: .leading,
+            spacing: 22
+        ) {
 
-        await appState.daphileClient
-            .fetchAlbums()
+            HStack {
+
+                Label(
+                    "Música Nueva",
+                    systemImage: "clock.fill"
+                )
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text("Más")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+
+            ScrollView(
+                .horizontal,
+                showsIndicators: false
+            ) {
+
+                HStack(spacing: 15) {
+
+                    ForEach(
+                        appState.daphileClient.albums.prefix(15)
+                    ) { album in
+
+                        NavigationLink {
+
+                            AlbumDetailView(
+                                album: album,
+                                serverIP: appState.serverIP,
+                                playerMAC: appState.selectedPlayerID,
+                                networkClient: appState.daphileClient
+                            )
+
+                        } label: {
+
+                            AlbumCardView(
+                                album: album,
+                                serverIP: appState.serverIP,
+                                isFocused:
+                                    focusedItem == .album(album.id)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .focused(
+                            $focusedItem,
+                            equals: .album(album.id)
+                        )
+                    }
+                }
+                .padding(.horizontal, 55)
+                .padding(.vertical, 20)
+            }
+            .padding(.horizontal, -35)
+        }
+        .focusSection()
     }
-}
 
-// MARK: - Música Nueva
+    // MARK: - Explorar
 
-private var musicNewSection: some View {
+    private var exploreSection: some View {
 
-    VStack(
-        alignment: .leading,
-        spacing: 22
-    ) {
-
-        HStack {
+        VStack(
+            alignment: .leading,
+            spacing: 22
+        ) {
 
             Label(
-                "Música Nueva",
-                systemImage: "clock.fill"
+                "Explorar",
+                systemImage: "music.note.list"
             )
             .font(.headline)
             .foregroundStyle(.primary)
 
-            Spacer()
+            HStack(
+                alignment: .top,
+                spacing: 24
+            ) {
 
-            Text("Más")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-        }
+                ExploreFocusView(
+                    title: "Mi Música",
+                    focusedItem: focusedExploreItem,
+                    onFocusChanged: { focused in
 
-        ScrollView(
-            .horizontal,
-            showsIndicators: false
-        ) {
+                        if focused {
 
-            HStack(spacing: 15) {
+                            focusedExploreItem = "Mi Música"
 
-                ForEach(
-                    appState.daphileClient.albums
-                        .prefix(15)
-                ) { album in
+                        } else if
+                            focusedExploreItem == "Mi Música" {
 
-                    NavigationLink {
-
-                        AlbumDetailView(
-                            album: album,
-                            serverIP:
-                                appState.serverIP,
-                            playerMAC:
-                                appState.selectedPlayerID,
-                            networkClient:
-                                appState.daphileClient
-                        )
-
-                    } label: {
-
-                        AlbumCardView(
-                            album: album,
-                            serverIP:
-                                appState.serverIP,
-                            isFocused:
-                                focusedItem ==
-                                .album(album.id)
-                        )
+                            focusedExploreItem = nil
+                        }
+                    },
+                    onSelect: {
+                        // Futuro
                     }
-                    .buttonStyle(.plain)
-                    .focused(
-                        $focusedItem,
-                        equals:
-                            .album(album.id)
-                    )
-                }
+                )
+                .focused(
+                    $focusedItem,
+                    equals: .explore("Mi Música")
+                )
+
+                ExploreFocusView(
+                    title: "Radio",
+                    focusedItem: focusedExploreItem,
+                    onFocusChanged: { focused in
+
+                        if focused {
+
+                            focusedExploreItem = "Radio"
+
+                        } else if
+                            focusedExploreItem == "Radio" {
+
+                            focusedExploreItem = nil
+                        }
+                    },
+                    onSelect: {
+                        // Futuro
+                    }
+                )
+                .focused(
+                    $focusedItem,
+                    equals: .explore("Radio")
+                )
+
+                ExploreFocusView(
+                    title: "Favoritos",
+                    focusedItem: focusedExploreItem,
+                    onFocusChanged: { focused in
+
+                        if focused {
+
+                            focusedExploreItem = "Favoritos"
+
+                        } else if
+                            focusedExploreItem == "Favoritos" {
+
+                            focusedExploreItem = nil
+                        }
+                    },
+                    onSelect: {
+                        // Futuro
+                    }
+                )
+                .focused(
+                    $focusedItem,
+                    equals: .explore("Favoritos")
+                )
+
+                ExploreFocusView(
+                    title: "Aplicaciones",
+                    focusedItem: focusedExploreItem,
+                    onFocusChanged: { focused in
+
+                        if focused {
+
+                            focusedExploreItem = "Aplicaciones"
+
+                        } else if
+                            focusedExploreItem == "Aplicaciones" {
+
+                            focusedExploreItem = nil
+                        }
+                    },
+                    onSelect: {
+                        // Futuro
+                    }
+                )
+                .focused(
+                    $focusedItem,
+                    equals: .explore("Aplicaciones")
+                )
             }
-            .padding(.horizontal, 55)
-            .padding(.vertical, 20)
+            .focusSection()
         }
-        .padding(.horizontal, -35)
+        .focusSection()
     }
 }
 
-// MARK: - Explorar
+#Preview {
 
-private var exploreSection: some View {
-
-    VStack(
-        alignment: .leading,
-        spacing: 22
-    ) {
-
-        Label(
-            "Explorar",
-            systemImage:
-                "music.note.list"
+    HomeView()
+        .environmentObject(
+            AppState()
         )
-        .font(.headline)
-        .foregroundStyle(.primary)
-
-        HStack(spacing: 24) {
-
-            ExploreFocusView(
-                title: "Mi Música",
-                focusedItem:
-                    focusedExploreItem,
-                onFocusChanged: {
-                    focused in
-
-                    if focused {
-
-                        focusedExploreItem =
-                            "Mi Música"
-
-                    }
-                    else if
-                        focusedExploreItem ==
-                        "Mi Música" {
-
-                        focusedExploreItem =
-                            nil
-                    }
-                },
-                onSelect: {
-                    // Futuro
-                }
-            )
-            .focused(
-                $focusedItem,
-                equals:
-                    .explore("Mi Música")
-            )
-
-            ExploreFocusView(
-                title: "Radio",
-                focusedItem:
-                    focusedExploreItem,
-                onFocusChanged: {
-                    focused in
-
-                    if focused {
-
-                        focusedExploreItem =
-                            "Radio"
-
-                    }
-                    else if
-                        focusedExploreItem ==
-                        "Radio" {
-
-                        focusedExploreItem =
-                            nil
-                    }
-                },
-                onSelect: {
-                    // Futuro
-                }
-            )
-            .focused(
-                $focusedItem,
-                equals:
-                    .explore("Radio")
-            )
-
-            ExploreFocusView(
-                title: "Favoritos",
-                focusedItem:
-                    focusedExploreItem,
-                onFocusChanged: {
-                    focused in
-
-                    if focused {
-
-                        focusedExploreItem =
-                            "Favoritos"
-
-                    }
-                    else if
-                        focusedExploreItem ==
-                        "Favoritos" {
-
-                        focusedExploreItem =
-                            nil
-                    }
-                },
-                onSelect: {
-                    // Futuro
-                }
-            )
-            .focused(
-                $focusedItem,
-                equals:
-                    .explore("Favoritos")
-            )
-
-            ExploreFocusView(
-                title: "Aplicaciones",
-                focusedItem:
-                    focusedExploreItem,
-                onFocusChanged: {
-                    focused in
-
-                    if focused {
-
-                        focusedExploreItem =
-                            "Aplicaciones"
-
-                    }
-                    else if
-                        focusedExploreItem ==
-                        "Aplicaciones" {
-
-                        focusedExploreItem =
-                            nil
-                    }
-                },
-                onSelect: {
-                    // Futuro
-                }
-            )
-            .focused(
-                $focusedItem,
-                equals:
-                    .explore("Aplicaciones")
-            )
-        }
-    }
 }
-
-}
-
