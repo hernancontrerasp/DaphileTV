@@ -3,6 +3,7 @@ import SwiftUI
 struct MainNavigationBar: View {
 
     enum Destination: Hashable {
+
         case home
         case nowPlaying
         case search
@@ -10,8 +11,11 @@ struct MainNavigationBar: View {
         case player
     }
 
-    @Binding var selection: Destination
-    @Binding var focusHomeRequest: Bool
+    @Binding var selection:
+        Destination
+
+    @Binding var focusDestinationRequest:
+        Destination?
 
     let onDestinationFocused:
         (Destination) -> Void
@@ -31,10 +35,15 @@ struct MainNavigationBar: View {
             title: String
         )
     ] = [
+
         (.home, "Inicio"),
+
         (.nowPlaying, "En reproducción"),
+
         (.search, "Buscar"),
+
         (.queue, "Cola de reproducción"),
+
         (.player, "Reproductor")
     ]
 
@@ -66,22 +75,35 @@ struct MainNavigationBar: View {
                             )
                         )
                         .foregroundStyle(
+
                             focusedDestination ==
                             item.destination
+
                             ? Color.black
                             : Color.white
                         )
-                        .padding(.horizontal, 26)
-                        .padding(.vertical, 14)
-                        .frame(minHeight: 62)
+                        .padding(
+                            .horizontal,
+                            26
+                        )
+                        .padding(
+                            .vertical,
+                            14
+                        )
+                        .frame(
+                            minHeight: 62
+                        )
                         .background {
 
                             Capsule()
                                 .fill(
+
                                     focusedDestination ==
                                     item.destination
+
                                     ? Color.white
                                         .opacity(0.95)
+
                                     : Color.clear
                                 )
                         }
@@ -95,8 +117,14 @@ struct MainNavigationBar: View {
                 )
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(
+            .horizontal,
+            14
+        )
+        .padding(
+            .vertical,
+            8
+        )
         .background {
 
             Capsule()
@@ -117,16 +145,23 @@ struct MainNavigationBar: View {
 
         .onAppear {
 
-            focusedDestination = .home
-            selection = .home
+            focusedDestination =
+                .home
+
+            selection =
+                .home
         }
+
+        // MARK: - Cambio de foco
 
         .onChange(
             of: focusedDestination
         ) { _, newDestination in
 
             guard let newDestination else {
+
                 cancelFocusTask()
+
                 return
             }
 
@@ -135,23 +170,32 @@ struct MainNavigationBar: View {
             )
         }
 
-        .onChange(
-            of: focusHomeRequest
-        ) { _, requested in
+        // MARK: - Solicitud de foco
 
-            guard requested else {
+        .onChange(
+            of: focusDestinationRequest
+        ) { _, requestedDestination in
+
+            guard
+                let requestedDestination
+            else {
                 return
             }
 
             cancelFocusTask()
 
-            focusedDestination = .home
-            selection = .home
+            focusedDestination =
+                requestedDestination
 
-            focusHomeRequest = false
+            selection =
+                requestedDestination
+
+            focusDestinationRequest =
+                nil
         }
 
         .onDisappear {
+
             cancelFocusTask()
         }
     }
@@ -178,7 +222,9 @@ struct MainNavigationBar: View {
                 return
             }
 
-            guard !Task.isCancelled else {
+            guard
+                !Task.isCancelled
+            else {
                 return
             }
 

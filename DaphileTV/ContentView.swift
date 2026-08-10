@@ -2,12 +2,14 @@ import SwiftUI
 
 struct ContentView: View {
 
-    @StateObject private var appState = AppState()
+    @StateObject private var appState =
+        AppState()
 
     @State private var navigationSelection:
         MainNavigationBar.Destination = .home
 
-    @State private var focusHomeRequest = false
+    @State private var focusDestinationRequest:
+        MainNavigationBar.Destination?
 
     var body: some View {
 
@@ -25,12 +27,15 @@ struct ContentView: View {
                     Spacer()
 
                     MainNavigationBar(
-                        selection: $navigationSelection,
-                        focusHomeRequest: $focusHomeRequest,
+                        selection:
+                            $navigationSelection,
+                        focusDestinationRequest:
+                            $focusDestinationRequest,
                         onDestinationFocused: {
                             destination in
 
-                            navigationSelection = destination
+                            navigationSelection =
+                                destination
                         }
                     )
 
@@ -45,10 +50,16 @@ struct ContentView: View {
                         maxWidth: .infinity,
                         maxHeight: .infinity
                     )
+                    .onExitCommand {
+
+                        focusDestinationRequest =
+                            navigationSelection
+                    }
             }
         }
         .environmentObject(appState)
         .onAppear {
+
             navigationSelection = .home
         }
     }
@@ -87,5 +98,6 @@ struct ContentView: View {
 }
 
 #Preview {
+
     ContentView()
 }
