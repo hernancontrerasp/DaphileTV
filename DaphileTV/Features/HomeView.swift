@@ -1,36 +1,26 @@
 import SwiftUI
 
 struct HomeView: View {
-
     @EnvironmentObject private var appState: AppState
-
     @FocusState private var focusedItem: FocusArea?
 
-    @State private var focusedExploreItem: String?
+    // Eliminamos 'focusedExploreItem' porque @FocusState ya hace ese trabajo.
 
     enum FocusArea: Hashable {
         case album(Int)
         case explore(String)
     }
+    
+    // Estructuramos las categorías para iterarlas limpiamente
+    let exploreCategories = ["Mi Música", "Radio", "Favoritos", "Aplicaciones"]
 
     var body: some View {
-
-        ScrollView(
-            .vertical,
-            showsIndicators: false
-        ) {
-
-            VStack(
-                alignment: .leading,
-                spacing: 32
-            ) {
-
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 32) {
                 // MARK: - Música Nueva
-
                 musicNewSection
 
                 // MARK: - Explorar
-
                 exploreSection
             }
             .padding(.horizontal, 35)
@@ -44,74 +34,47 @@ struct HomeView: View {
     }
 
     // MARK: - Cargar álbumes
-
     private func loadAlbumsIfNeeded() async {
-
+        // Nota arquitectónica: Idealmente AppState debería encapsular esto.
+        // Ej: await appState.loadInitialData() para que la vista no conozca a daphileClient.
         if appState.daphileClient.albums.isEmpty {
-
             await appState.daphileClient.fetchAlbums()
         }
     }
 
     // MARK: - Música Nueva
-
     private var musicNewSection: some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: 22
-        ) {
-
+        VStack(alignment: .leading, spacing: 22) {
             HStack {
-
-                Label(
-                    "Música Nueva",
-                    systemImage: "clock.fill"
-                )
-                .font(.headline)
-                .foregroundStyle(.primary)
-
+                Label("Música Nueva", systemImage: "clock.fill")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
                 Spacer()
-
                 Text("Más")
                     .font(.headline)
                     .foregroundStyle(.secondary)
             }
 
-            ScrollView(
-                .horizontal,
-                showsIndicators: false
-            ) {
-
-                HStack(spacing: 15) {
-
-                    ForEach(
-                        appState.daphileClient.albums.prefix(15)
-                    ) { album in
-
+            ScrollView(.horizontal, showsIndicators: false) {
+                // CAMBIO CLAVE: LazyHStack para optimizar memoria en tvOS
+                LazyHStack(spacing: 15) {
+                    ForEach(appState.daphileClient.albums.prefix(15)) { album in
                         NavigationLink {
-
                             AlbumDetailView(
                                 album: album,
                                 serverIP: appState.serverIP,
                                 playerMAC: appState.selectedPlayerID,
                                 networkClient: appState.daphileClient
                             )
-
                         } label: {
-
                             AlbumCardView(
                                 album: album,
                                 serverIP: appState.serverIP,
-                                isFocused:
-                                    focusedItem == .album(album.id)
+                                isFocused: focusedItem == .album(album.id)
                             )
                         }
-                        .buttonStyle(.plain)
-                        .focused(
-                            $focusedItem,
-                            equals: .album(album.id)
-                        )
+                        .buttonStyle(CardButtonStyle()) // Tienes que asegurarte de desactivar el estilo por defecto de tvOS
+                        .focused($focusedItem, equals: .album(album.id))
                     }
                 }
                 .padding(.horizontal, 55)
@@ -123,132 +86,32 @@ struct HomeView: View {
     }
 
     // MARK: - Explorar
-
     private var exploreSection: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            Label("Explorar", systemImage: "music.note.list")
+                .font(.headline)
+                .foregroundStyle(.primary)
 
-        VStack(
-            alignment: .leading,
-            spacing: 22
-        ) {
-
-            Label(
-                "Explorar",
-                systemImage: "music.note.list"
-            )
-            .font(.headline)
-            .foregroundStyle(.primary)
-
-            HStack(
-                alignment: .top,
-                spacing: 24
-            ) {
-
-                ExploreFocusView(
-                    title: "Mi Música",
-                    focusedItem: focusedExploreItem,
-                    onFocusChanged: { focused in
-
-                        if focused {
-
-                            focusedExploreItem = "Mi Música"
-
-                        } else if
-                            focusedExploreItem == "Mi Música" {
-
-                            focusedExploreItem = nil
+            HStack(alignment: .top, spacing: 24) {
+                // CAMBIO CLAVE: Iteración limpia sin duplicar código
+                ForEach(exploreCategories, id: \.self) { category in
+                    ExploreFocusView(
+                        title: category,
+                        // Derivamos el estado directamente del @FocusState principal
+                        focusedItem: focusedItem == .explore(category) ? category : nil,
+                        onFocusChanged: { _ in
+                            // Ya no necesitas manejar lógica manual aquí,
+                            // tvOS actualizará $focusedItem automáticamente gracias al modificador .focused
+                        },
+                        onSelect: {
+                            // Futuro: Manejar navegación
                         }
-                    },
-                    onSelect: {
-                        // Futuro
-                    }
-                )
-                .focused(
-                    $focusedItem,
-                    equals: .explore("Mi Música")
-                )
-
-                ExploreFocusView(
-                    title: "Radio",
-                    focusedItem: focusedExploreItem,
-                    onFocusChanged: { focused in
-
-                        if focused {
-
-                            focusedExploreItem = "Radio"
-
-                        } else if
-                            focusedExploreItem == "Radio" {
-
-                            focusedExploreItem = nil
-                        }
-                    },
-                    onSelect: {
-                        // Futuro
-                    }
-                )
-                .focused(
-                    $focusedItem,
-                    equals: .explore("Radio")
-                )
-
-                ExploreFocusView(
-                    title: "Favoritos",
-                    focusedItem: focusedExploreItem,
-                    onFocusChanged: { focused in
-
-                        if focused {
-
-                            focusedExploreItem = "Favoritos"
-
-                        } else if
-                            focusedExploreItem == "Favoritos" {
-
-                            focusedExploreItem = nil
-                        }
-                    },
-                    onSelect: {
-                        // Futuro
-                    }
-                )
-                .focused(
-                    $focusedItem,
-                    equals: .explore("Favoritos")
-                )
-
-                ExploreFocusView(
-                    title: "Aplicaciones",
-                    focusedItem: focusedExploreItem,
-                    onFocusChanged: { focused in
-
-                        if focused {
-
-                            focusedExploreItem = "Aplicaciones"
-
-                        } else if
-                            focusedExploreItem == "Aplicaciones" {
-
-                            focusedExploreItem = nil
-                        }
-                    },
-                    onSelect: {
-                        // Futuro
-                    }
-                )
-                .focused(
-                    $focusedItem,
-                    equals: .explore("Aplicaciones")
-                )
+                    )
+                    .focused($focusedItem, equals: .explore(category))
+                }
             }
             .focusSection()
         }
         .focusSection()
     }
-}
-
-#Preview {
-
-    HomeView()
-        .environmentObject(
-            AppState()
-        )
 }
