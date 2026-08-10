@@ -161,6 +161,8 @@ struct AlbumDetailView: View {
 
                 HStack(spacing: 25) {
 
+                    // MARK: - Reproducir
+
                     NavigationLink {
 
                         PlayerFullScreenView(
@@ -168,6 +170,7 @@ struct AlbumDetailView: View {
                             serverIP: serverIP,
                             playerMAC: playerMAC,
                             startIndex: 0,
+                            shuffle: false,
                             networkClient: networkClient
                         )
 
@@ -186,30 +189,18 @@ struct AlbumDetailView: View {
                         .borderedProminent
                     )
 
-                    Button {
+                    // MARK: - Aleatorio
 
-                        guard !networkClient.tracks.isEmpty
-                        else {
-                            return
-                        }
+                    NavigationLink {
 
-                        let randomIndex =
-                            Int.random(
-                                in: 0..<networkClient.tracks.count
-                            )
-
-                        Task {
-
-                            await networkClient.sendCommand(
-                                targetPlayer: playerMAC,
-                                command: [
-                                    "playlistcontrol",
-                                    "cmd:load",
-                                    "album_id:\(album.id)",
-                                    "play_index:\(randomIndex)"
-                                ]
-                            )
-                        }
+                        PlayerFullScreenView(
+                            album: album,
+                            serverIP: serverIP,
+                            playerMAC: playerMAC,
+                            startIndex: 0,
+                            shuffle: true,
+                            networkClient: networkClient
+                        )
 
                     } label: {
 
@@ -279,6 +270,7 @@ struct AlbumDetailView: View {
                 serverIP: serverIP,
                 playerMAC: playerMAC,
                 startIndex: index,
+                shuffle: false,
                 networkClient: networkClient
             )
 

@@ -6,6 +6,7 @@ struct PlayerFullScreenView: View {
     let serverIP: String
     let playerMAC: String
     let startIndex: Int
+    let shuffle: Bool
 
     @ObservedObject var networkClient: DaphileClient
 
@@ -255,6 +256,10 @@ struct PlayerFullScreenView: View {
 
         isStartingPlayback = true
 
+        // -------------------------------------------------
+        // 1. Obtener las canciones del álbum
+        // -------------------------------------------------
+
         await networkClient.fetchTracks(
             targetPlayer: playerMAC,
             albumID: album.id
@@ -266,10 +271,9 @@ struct PlayerFullScreenView: View {
             return
         }
 
-        let validIndex = min(
-            max(startIndex, 0),
-            networkClient.tracks.count - 1
-        )
+        // -------------------------------------------------
+        // 2. Cargar el álbum en la playlist
+        // -------------------------------------------------
 
         await networkClient.sendCommand(
             targetPlayer: playerMAC,
@@ -277,15 +281,67 @@ struct PlayerFullScreenView: View {
                 "playlistcontrol",
                 "cmd:load",
                 "album_id:\(album.id)",
-                "play_index:\(validIndex)"
+                "play_index:\(max(startIndex, 0))"
             ]
         )
 
-        // Damos un pequeño margen para que
-        // Daphile actualice su estado.
+        // -------------------------------------------------
+        // 3. Dar tiempo a Daphile para construir la playlist
+        // -------------------------------------------------
 
         try? await Task.sleep(
-            for: .milliseconds(300)
+            for: .milliseconds(400)
+        )
+
+        // -------------------------------------------------
+        // 4. Configurar el modo shuffle
+        //
+        // 0 = orden normal
+        // 1 = canciones aleatorias
+        // -------------------------------------------------
+
+        await networkClient.sendCommand(
+            targetPlayer: playerMAC,
+            command: [
+                "playlist",
+                "shuffle",
+                shuffle ? "1" : "0"
+            ]
+        )
+
+        // -------------------------------------------------
+        // 5. Si estamos en modo aleatorio:
+        //
+        // Daphile ya tiene el álbum cargado y el shuffle
+        // activado. Seleccionamos el primer índice de la
+        // playlist resultante.
+        //
+        // Esto evita escoger nosotros una canción al azar.
+        // El orden lo determina Daphile.
+        // -------------------------------------------------
+
+        if shuffle {
+
+            try? await Task.sleep(
+                for: .milliseconds(300)
+            )
+
+            await networkClient.sendCommand(
+                targetPlayer: playerMAC,
+                command: [
+                    "playlist",
+                    "index",
+                    "0"
+                ]
+            )
+        }
+
+        // -------------------------------------------------
+        // 6. Dar tiempo a Daphile para actualizar el estado
+        // -------------------------------------------------
+
+        try? await Task.sleep(
+            for: .milliseconds(400)
         )
 
         await refreshPlayerState()
