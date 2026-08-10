@@ -28,6 +28,9 @@ final class DaphileClient: ObservableObject {
 
     @Published private(set) var currentTrack: LMSCurrentTrack?
 
+    @Published private(set) var playbackTime: TimeInterval = 0
+    @Published private(set) var playbackDuration: TimeInterval = 0
+
     // MARK: - Apps / Plugins
 
     @Published private(set) var installedApps: [LMSAppItem] = []
@@ -56,14 +59,17 @@ final class DaphileClient: ObservableObject {
                 from: data
             )
 
-            let players = response.result?.playersLoop ?? []
+            let players =
+                response.result?.playersLoop ?? []
 
             availablePlayers = players
 
             return players
 
         } catch {
-            errorMessage = error.localizedDescription
+
+            errorMessage =
+                error.localizedDescription
 
             print(
                 "Error descubriendo zonas: \(error.localizedDescription)"
@@ -75,7 +81,9 @@ final class DaphileClient: ObservableObject {
 
     // MARK: - Albums
 
-    func fetchAlbums(forceReload: Bool = false) async {
+    func fetchAlbums(
+        forceReload: Bool = false
+    ) async {
 
         if !forceReload && !albums.isEmpty {
             return
@@ -104,12 +112,17 @@ final class DaphileClient: ObservableObject {
                 from: data
             )
 
-            albums = response.result.albumsLoop ?? []
+            albums =
+                response.result.albumsLoop ?? []
 
-            print("Álbumes cargados: \(albums.count)")
+            print(
+                "Álbumes cargados: \(albums.count)"
+            )
 
         } catch {
-            errorMessage = error.localizedDescription
+
+            errorMessage =
+                error.localizedDescription
 
             print(
                 "Error cargando álbumes: \(error.localizedDescription)"
@@ -145,15 +158,19 @@ final class DaphileClient: ObservableObject {
                 ]
             )
 
-            let response = try JSONDecoder().decode(
-                LMSArtistsResponse.self,
-                from: data
-            )
+            let response =
+                try JSONDecoder().decode(
+                    LMSArtistsResponse.self,
+                    from: data
+                )
 
-            artistsList = response.result.artistsLoop ?? []
+            artistsList =
+                response.result.artistsLoop ?? []
 
         } catch {
-            errorMessage = error.localizedDescription
+
+            errorMessage =
+                error.localizedDescription
 
             print(
                 "Error cargando artistas: \(error.localizedDescription)"
@@ -177,7 +194,10 @@ final class DaphileClient: ObservableObject {
 
         do {
             let data = try await api.request(
-                playerID: targetPlayer.isEmpty ? "0" : targetPlayer,
+                playerID:
+                    targetPlayer.isEmpty
+                    ? "0"
+                    : targetPlayer,
                 command: [
                     "tracks",
                     "0",
@@ -188,22 +208,31 @@ final class DaphileClient: ObservableObject {
                 ]
             )
 
-            let response = try JSONDecoder().decode(
-                LMSTracksResponse.self,
-                from: data
-            )
+            let response =
+                try JSONDecoder().decode(
+                    LMSTracksResponse.self,
+                    from: data
+                )
 
-            let rawTracks = response.result.titlesLoop ?? []
+            let rawTracks =
+                response.result.titlesLoop ?? []
 
-            tracks = rawTracks.sorted {
-                let number1 = Int($0.tracknum ?? "") ?? 0
-                let number2 = Int($1.tracknum ?? "") ?? 0
+            tracks =
+                rawTracks.sorted {
 
-                return number1 < number2
-            }
+                    let number1 =
+                        Int($0.tracknum ?? "") ?? 0
+
+                    let number2 =
+                        Int($1.tracknum ?? "") ?? 0
+
+                    return number1 < number2
+                }
 
         } catch {
-            errorMessage = error.localizedDescription
+
+            errorMessage =
+                error.localizedDescription
 
             print(
                 "Error cargando canciones: \(error.localizedDescription)"
@@ -222,31 +251,66 @@ final class DaphileClient: ObservableObject {
         }
 
         do {
-            let data = try await api.request(
-                playerID: targetPlayer,
-                command: [
-                    "status",
-                    "-",
-                    "1",
-                    "tags:aYdj"
-                ]
-            )
 
-            let response = try JSONDecoder().decode(
-                LMSStatusResponse.self,
-                from: data
-            )
+            let data =
+                try await api.request(
+                    playerID: targetPlayer,
+                    command: [
+                        "status",
+                        "-",
+                        "1",
+                        "tags:aYdj"
+                    ]
+                )
 
-            guard var track = response.result.playlistLoop?.first else {
+            let response =
+                try JSONDecoder().decode(
+                    LMSStatusResponse.self,
+                    from: data
+                )
+
+            // -------------------------------------------------
+            // Tiempo transcurrido
+            //
+            // El tiempo pertenece al resultado del status.
+            // -------------------------------------------------
+
+            playbackTime =
+                response.result.time ?? 0
+
+            // -------------------------------------------------
+            // Canción actual
+            // -------------------------------------------------
+
+            guard var track =
+                response.result.playlistLoop?.first
+            else {
+
                 currentTrack = nil
+                playbackDuration = 0
+
                 return
             }
 
-            track.year = response.result.year
-            currentTrack = track
+            track.year =
+                response.result.year
+
+            currentTrack =
+                track
+
+            // -------------------------------------------------
+            // Duración
+            //
+            // La duración pertenece a LMSCurrentTrack.
+            // -------------------------------------------------
+
+            playbackDuration =
+                track.duration ?? 0
 
         } catch {
-            errorMessage = error.localizedDescription
+
+            errorMessage =
+                error.localizedDescription
 
             print(
                 "Error obteniendo el track actual: \(error.localizedDescription)"
@@ -266,6 +330,7 @@ final class DaphileClient: ObservableObject {
         }
 
         do {
+
             _ = try await api.request(
                 playerID: targetPlayer,
                 command: command
@@ -276,7 +341,9 @@ final class DaphileClient: ObservableObject {
             )
 
         } catch {
-            errorMessage = error.localizedDescription
+
+            errorMessage =
+                error.localizedDescription
 
             print(
                 "Error ejecutando comando: \(error.localizedDescription)"
@@ -297,65 +364,95 @@ final class DaphileClient: ObservableObject {
             isLoading = false
         }
 
-        // El endpoint /plugins no utiliza JSON-RPC.
-        // La URL se obtiene desde la configuración del API.
-        guard let url = api.pluginsURL else {
-            errorMessage = DaphileError.invalidURL.localizedDescription
+        guard let url =
+            api.pluginsURL
+        else {
+
+            errorMessage =
+                DaphileError.invalidURL.localizedDescription
+
             return
         }
 
-        var request = URLRequest(url: url)
+        var request =
+            URLRequest(
+                url: url
+            )
 
-        request.httpMethod = "GET"
+        request.httpMethod =
+            "GET"
 
         request.setValue(
             "application/json",
-            forHTTPHeaderField: "Accept"
+            forHTTPHeaderField:
+                "Accept"
         )
 
         request.setValue(
             "Mozilla/5.0 (Apple TV)",
-            forHTTPHeaderField: "User-Agent"
+            forHTTPHeaderField:
+                "User-Agent"
         )
 
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 6.0
+        let configuration =
+            URLSessionConfiguration.ephemeral
 
-        let session = URLSession(
-            configuration: configuration
-        )
+        configuration.timeoutIntervalForRequest =
+            6.0
 
-        do {
-            let (data, response) = try await session.data(
-                for: request
+        let session =
+            URLSession(
+                configuration:
+                    configuration
             )
 
-            guard let httpResponse = response as? HTTPURLResponse,
-                  200..<300 ~= httpResponse.statusCode else {
+        do {
+
+            let (
+                data,
+                response
+            ) =
+                try await session.data(
+                    for: request
+                )
+
+            guard
+                let httpResponse =
+                    response as? HTTPURLResponse,
+                200..<300 ~=
+                    httpResponse.statusCode
+            else {
+
                 throw DaphileError.invalidResponse
             }
 
-            let decodedResponse = try JSONDecoder().decode(
-                LMSAppsResponse.self,
-                from: data
-            )
+            let decodedResponse =
+                try JSONDecoder().decode(
+                    LMSAppsResponse.self,
+                    from: data
+                )
 
-            installedApps = decodedResponse.result.appsLoop ?? []
+            installedApps =
+                decodedResponse.result.appsLoop ?? []
 
         } catch {
-            errorMessage = error.localizedDescription
+
+            errorMessage =
+                error.localizedDescription
 
             print(
                 "Error obteniendo plugins: \(error.localizedDescription)"
             )
 
-            // Fallback temporal de TIDAL.
             if installedApps.isEmpty {
+
                 installedApps = [
+
                     LMSAppItem(
                         name: "TIDAL",
                         cmd: "tidal",
-                        icon: "plugins/Tidal/html/images/icon.png"
+                        icon:
+                            "plugins/Tidal/html/images/icon.png"
                     )
                 ]
             }
@@ -368,17 +465,8 @@ final class DaphileClient: ObservableObject {
         for artistName: String
     ) -> [LMSAlbum] {
 
-        let normalizedArtist = artistName.folding(
-            options: [
-                .diacriticInsensitive,
-                .caseInsensitive
-            ],
-            locale: .current
-        )
-
-        return albums.filter { album in
-
-            let albumArtist = album.artist.folding(
+        let normalizedArtist =
+            artistName.folding(
                 options: [
                     .diacriticInsensitive,
                     .caseInsensitive
@@ -386,8 +474,20 @@ final class DaphileClient: ObservableObject {
                 locale: .current
             )
 
-            return albumArtist == normalizedArtist
+        return albums.filter {
+            album in
+
+            let albumArtist =
+                album.artist.folding(
+                    options: [
+                        .diacriticInsensitive,
+                        .caseInsensitive
+                    ],
+                    locale: .current
+                )
+
+            return albumArtist ==
+                normalizedArtist
         }
     }
 }
-
