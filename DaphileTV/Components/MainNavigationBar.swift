@@ -115,6 +115,12 @@ struct MainNavigationBar: View {
         .padding(.top, 0)
         .padding(.bottom, 24)
 
+        .onAppear {
+
+            focusedDestination = .home
+            selection = .home
+        }
+
         .onChange(
             of: focusedDestination
         ) { _, newDestination in
