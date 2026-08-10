@@ -1,0 +1,30 @@
+# Xcode
+DerivedData/
+build/
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Swift Package Manager
+.build/
+Packages/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Swap / temporary files
+*.swp
+*.swo
+*.tmp
+
+# Archives / debug symbols
+*.ipa
+*.dSYM
+*.dSYM.zip
