@@ -51,7 +51,10 @@ struct ContentView: View {
 
         switch navigationSelection {
             case .home: HomeView()
-            case .nowPlaying: Text("En reproducción").font(.largeTitle)
+            case .nowPlaying: NowPlayingRootView()
+                .tabItem {
+                    Label("En reproducción", systemImage: "play.circle.fill")
+                }
             case .search: Text("Buscar").font(.largeTitle)
             case .queue: Text("Cola de reproducción").font(.largeTitle)
             case .player: PlayerPickerView()

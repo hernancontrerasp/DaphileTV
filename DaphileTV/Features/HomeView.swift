@@ -1,10 +1,9 @@
 import SwiftUI
+import Combine
 
 struct HomeView: View {
     @EnvironmentObject private var appState: AppState
     @FocusState private var focusedItem: FocusArea?
-
-    // Eliminamos 'focusedExploreItem' porque @FocusState ya hace ese trabajo.
 
     enum FocusArea: Hashable {
         case album(Int)
@@ -35,8 +34,6 @@ struct HomeView: View {
 
     // MARK: - Cargar álbumes
     private func loadAlbumsIfNeeded() async {
-        // Nota arquitectónica: Idealmente AppState debería encapsular esto.
-        // Ej: await appState.loadInitialData() para que la vista no conozca a daphileClient.
         if appState.daphileClient.albums.isEmpty {
             await appState.daphileClient.fetchAlbums()
         }
@@ -56,8 +53,7 @@ struct HomeView: View {
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                // CAMBIO CLAVE: LazyHStack para optimizar memoria en tvOS
-                LazyHStack(spacing: 15) {
+                LazyHStack(spacing: 30) { // Espacio cómodo entre tarjetas horizontales
                     ForEach(appState.daphileClient.albums.prefix(15)) { album in
                         NavigationLink {
                             AlbumDetailView(
@@ -72,57 +68,58 @@ struct HomeView: View {
                                 serverIP: appState.serverIP,
                                 isFocused: focusedItem == .album(album.id)
                             )
+                            .frame(width: 290) // <-- Restablecemos el tamaño compacto original para la fila horizontal
                         }
-                        .buttonStyle(CardButtonStyle()) // Tienes que asegurarte de desactivar el estilo por defecto de tvOS
+                        .buttonStyle(NoBackgroundButtonStyle()) // <-- Usamos el estilo sin marco ni fondo nativo
+                        .id(album.id)
                         .focused($focusedItem, equals: .album(album.id))
                     }
                 }
                 .padding(.horizontal, 55)
-                .padding(.vertical, 20)
+                .padding(.vertical, 50) // Margen vertical holgado para permitir el zoom sin recortes
             }
             .padding(.horizontal, -35)
+            .padding(.vertical, -15)
         }
         .focusSection()
     }
 
     // MARK: - Explorar
-        private var exploreSection: some View {
-            VStack(alignment: .leading, spacing: 22) {
-                Label("Explorar", systemImage: "music.note.list")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+    private var exploreSection: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            Label("Explorar", systemImage: "music.note.list")
+                .font(.headline)
+                .foregroundStyle(.primary)
 
-                HStack(alignment: .top, spacing: 24) {
-                    ForEach(exploreCategories, id: \.self) { category in
-                        if category == "Mi Música" {
-                            // Conectamos la nueva vista
-                            NavigationLink {
-                                MyMusicView()
-                            } label: {
-                                ExploreFocusView(
-                                    title: category,
-                                    focusedItem: focusedItem == .explore(category) ? category : nil,
-                                    onFocusChanged: { _ in },
-                                    onSelect: { }
-                                )
-                            }
-                            .buttonStyle(CardButtonStyle()) // Anula el fondo nativo de tvOS
-                            .focused($focusedItem, equals: .explore(category))
-                            
-                        } else {
-                            // Los demás botones quedan como vistas estáticas por ahora
+            HStack(alignment: .top, spacing: 24) {
+                ForEach(exploreCategories, id: \.self) { category in
+                    if category == "Mi Música" {
+                        NavigationLink {
+                            MyMusicView()
+                        } label: {
                             ExploreFocusView(
                                 title: category,
                                 focusedItem: focusedItem == .explore(category) ? category : nil,
                                 onFocusChanged: { _ in },
                                 onSelect: { }
                             )
-                            .focused($focusedItem, equals: .explore(category))
                         }
+                        .buttonStyle(CardButtonStyle())
+                        .focused($focusedItem, equals: .explore(category))
+                        
+                    } else {
+                        ExploreFocusView(
+                            title: category,
+                            focusedItem: focusedItem == .explore(category) ? category : nil,
+                            onFocusChanged: { _ in },
+                            onSelect: { }
+                        )
+                        .focused($focusedItem, equals: .explore(category))
                     }
                 }
-                .focusSection()
             }
             .focusSection()
         }
+        .focusSection()
+    }
 }

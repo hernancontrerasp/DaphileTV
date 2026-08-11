@@ -151,6 +151,7 @@ struct LMSCurrentTrack: Codable {
     let title: String?
     let artist: String?
     let album: String?
+    let albumID: Int?
     var year: String?
     let duration: Double?
     let artworkTrackID: String?
@@ -159,6 +160,7 @@ struct LMSCurrentTrack: Codable {
         case title
         case artist
         case album
+        case albumID = "album_id"
         case year
         case duration
         case artworkTrackID = "artwork_track_id"
