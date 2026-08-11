@@ -3,12 +3,12 @@ import SwiftUI
 struct MainNavigationBar: View {
 
     enum Destination: Hashable {
-
         case home
         case nowPlaying
         case search
         case queue
         case player
+        case library
     }
 
     @Binding var selection:
@@ -41,11 +41,16 @@ struct MainNavigationBar: View {
         (.nowPlaying, "En reproducción"),
 
         (.search, "Buscar"),
+        
+        (.library, "Biblioteca"),
 
         (.queue, "Cola de reproducción"),
 
         (.player, "Reproductor")
     ]
+    
+    // Nueva propiedad para saber si el menú está restringido a una sola opción
+    var restrictedDestination: Destination? = nil
 
     var body: some View {
 
@@ -55,18 +60,13 @@ struct MainNavigationBar: View {
                 items,
                 id: \.destination
             ) { item in
+                let isEnabled = restrictedDestination == nil || restrictedDestination == item.destination
 
                 Button {
-
-                    selection =
-                        item.destination
-
-                    scheduleDestinationAction(
-                        item.destination
-                    )
-
+                    guard isEnabled else { return }
+                    selection = item.destination
+                    scheduleDestinationAction(item.destination)
                 } label: {
-
                     Text(item.title)
                         .font(
                             .system(
@@ -115,6 +115,9 @@ struct MainNavigationBar: View {
                     equals:
                         item.destination
                 )
+                // CLAVE: Si hay restricción y no es la opción activa, deshabilitamos el foco en este botón
+                .disabled(!isEnabled)
+                .opacity(isEnabled ? 1.0 : 0.4) // Opcional: Atenuar visualmente las opciones bloqueadas
             }
         }
         .padding(

@@ -49,7 +49,7 @@ struct LMSArtistItem: Codable, Identifiable, Hashable {
         }
 
         return URL(
-            string: "http://\(serverIP):9000/music/artwork/\(id)/cover.jpg"
+            string: "http://\(serverIP):9000/imageproxy/mai/artist/\(id)/image.jpg"
         )
     }
 }

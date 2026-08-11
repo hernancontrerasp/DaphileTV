@@ -86,32 +86,43 @@ struct HomeView: View {
     }
 
     // MARK: - Explorar
-    private var exploreSection: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            Label("Explorar", systemImage: "music.note.list")
-                .font(.headline)
-                .foregroundStyle(.primary)
+        private var exploreSection: some View {
+            VStack(alignment: .leading, spacing: 22) {
+                Label("Explorar", systemImage: "music.note.list")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
 
-            HStack(alignment: .top, spacing: 24) {
-                // CAMBIO CLAVE: Iteración limpia sin duplicar código
-                ForEach(exploreCategories, id: \.self) { category in
-                    ExploreFocusView(
-                        title: category,
-                        // Derivamos el estado directamente del @FocusState principal
-                        focusedItem: focusedItem == .explore(category) ? category : nil,
-                        onFocusChanged: { _ in
-                            // Ya no necesitas manejar lógica manual aquí,
-                            // tvOS actualizará $focusedItem automáticamente gracias al modificador .focused
-                        },
-                        onSelect: {
-                            // Futuro: Manejar navegación
+                HStack(alignment: .top, spacing: 24) {
+                    ForEach(exploreCategories, id: \.self) { category in
+                        if category == "Mi Música" {
+                            // Conectamos la nueva vista
+                            NavigationLink {
+                                MyMusicView()
+                            } label: {
+                                ExploreFocusView(
+                                    title: category,
+                                    focusedItem: focusedItem == .explore(category) ? category : nil,
+                                    onFocusChanged: { _ in },
+                                    onSelect: { }
+                                )
+                            }
+                            .buttonStyle(CardButtonStyle()) // Anula el fondo nativo de tvOS
+                            .focused($focusedItem, equals: .explore(category))
+                            
+                        } else {
+                            // Los demás botones quedan como vistas estáticas por ahora
+                            ExploreFocusView(
+                                title: category,
+                                focusedItem: focusedItem == .explore(category) ? category : nil,
+                                onFocusChanged: { _ in },
+                                onSelect: { }
+                            )
+                            .focused($focusedItem, equals: .explore(category))
                         }
-                    )
-                    .focused($focusedItem, equals: .explore(category))
+                    }
                 }
+                .focusSection()
             }
             .focusSection()
         }
-        .focusSection()
-    }
 }
